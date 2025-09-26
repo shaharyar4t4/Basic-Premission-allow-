@@ -2,7 +2,8 @@ import MainLayout from '@/components/Mainlayout/MainLayout';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Video } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useState } from 'react';
+import * as Location from 'expo-location';
+import React, { useEffect, useState } from 'react';
 import { Alert, Button, Image, Linking, Platform, StyleSheet, Text, View, } from 'react-native';
 import { RootStackParamList } from '../navigation/AllScreen';
 
@@ -15,8 +16,35 @@ type PropsType = NativeStackScreenProps<RootStackParamList, "Premission">;
 const Premission = ({ navigation }: PropsType) => {
     const [image, setImage] = useState<string | null>(null);
     const [video, setVideo] = useState<string | null>(null);
+    const [location, setLocation] = useState<{ latitude: number, longitude: number } | null>(null);
 
-
+    useEffect(() => {
+        const requestUserLocation = async () => {
+            const { status } = await Location.requestForegroundPermissionsAsync()
+            if (status !== 'granted') {
+                Alert.alert(
+                    'Permission Required',
+                    'Loaction permission is required',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                            text: 'Open Setings',
+                            onPress: () => {
+                                if (Platform.OS === 'android') {
+                                    Linking.openSettings();
+                                }
+                            }
+                        }
+                    ]
+                );
+            }else{
+                let user_location = await Location.getCurrentPositionAsync();
+                setLocation(user_location.coords)
+                console.log(user_location);
+            }
+        }
+        requestUserLocation();
+    }, [])
     const pickImage = async () => {
         // No permissions request is necessary for launching the image library
         let result = await ImagePicker.launchImageLibraryAsync({
@@ -74,6 +102,12 @@ const Premission = ({ navigation }: PropsType) => {
 
         }
     };
+
+    function onSubmit(){
+        console.log(location);
+    }
+
+
     return (
         <MainLayout>
             <View style={styles.container}>
@@ -89,7 +123,10 @@ const Premission = ({ navigation }: PropsType) => {
                     <Button title="Pick an image from camera roll" onPress={pickImage} />
                 </View>
                 <View style={styles.btn}>
-                    <Button  title='Open camera of your mobile' onPress={openCamera} />
+                    <Button title='Open camera of your mobile' onPress={openCamera} />
+                </View>
+                <View style={styles.btn}>
+                    <Button title='Open Location picker' onPress={onSubmit} />
                 </View>
             </View>
         </MainLayout>
@@ -110,7 +147,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         borderRadius: 10,
     },
-    btn:{
+    btn: {
         paddingTop: 15,
     }
 });
